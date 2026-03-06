@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}AuditFlow{% endblock %} - Security Audit Platform</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f5f5f5;--fg:#333;--card:#ffffff;--card-fg:#333;--primary:#1976d2;--primary-fg:#ffffff;--secondary:#1a1f36;--secondary-fg:#ffffff;--muted:#e5e7eb;--muted-fg:#6b7280;--border:#e0e0e0;--input:#e0e0e0;--destructive:#d32f2f;--severity-critical:#d32f2f;--severity-high:#f57c00;--severity-medium:#fbc02d;--severity-low:#757575;--severity-pass:#2e7d32;--sidebar-bg:#1a1f36;--sidebar-fg:#c5cae0;--sidebar-hover:#252b45;--sidebar-active:#1976d2;--glass-bg:rgba(255,255,255,0.7);--glass-border:rgba(255,255,255,0.3);--glass-shadow:0 8px 32px 0 rgba(31,38,135,0.12);--radius:0.5rem}
+[data-theme="dark"]{--bg:#0f1117;--fg:#e0e0e0;--card:#1a1f36;--card-fg:#e0e0e0;--muted:#252b45;--muted-fg:#9ca3af;--border:#252b45;--input:#252b45;--sidebar-bg:#0a0d1a;--sidebar-hover:#151a2e;--glass-bg:rgba(26,31,54,0.7);--glass-border:rgba(37,43,69,0.5);--glass-shadow:0 8px 32px 0 rgba(0,0,0,0.3)}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased;transition:background-color .3s ease,color .3s ease}
+a{color:var(--primary);text-decoration:none}
+.layout{display:flex;min-height:100vh}
+.main-content{flex:1;margin-left:256px;padding:2rem}
+.sidebar{position:fixed;top:0;left:0;width:256px;height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;z-index:40;transition:background-color .3s ease}
+.sidebar-toggle{margin:1rem 1rem 0;display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border-radius:var(--radius);background:var(--sidebar-hover);color:var(--sidebar-fg);border:none;cursor:pointer;font-size:.875rem;font-family:inherit;transition:background-color .3s ease}
+.sidebar-toggle:hover{background:rgba(25,118,210,0.2)}
+.sidebar-logo{padding:1.5rem;display:flex;align-items:center;gap:.5rem;font-size:1.25rem;font-weight:700;color:var(--sidebar-fg)}
+.sidebar-logo span:first-child{font-size:1.5rem}
+.sidebar-nav{flex:1;padding:0 .75rem}
+.sidebar-nav a{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:var(--radius);font-size:.875rem;font-weight:500;color:var(--sidebar-fg);transition:background-color .3s ease;margin-bottom:.25rem}
+.sidebar-nav a:hover{background:var(--sidebar-hover)}
+.sidebar-nav a.active{background:var(--sidebar-active);color:var(--primary-fg)}
+.sidebar-footer{padding:1rem 1.5rem;font-size:.75rem;color:rgba(197,202,224,0.5)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:.75rem;transition:background-color .3s ease,border-color .3s ease}
+.glass-card{background:var(--glass-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);border-radius:.75rem;padding:1.5rem;transition:all .3s ease}
+.btn-primary{display:inline-flex;align-items:center;gap:.5rem;background:var(--primary);color:var(--primary-fg);padding:.625rem 1.25rem;border-radius:var(--radius);font-weight:500;border:none;cursor:pointer;font-size:.875rem;font-family:inherit;transition:opacity .2s;text-decoration:none}
+.btn-primary:hover{opacity:.9;color:var(--primary-fg)}
+.btn-outline{display:inline-flex;align-items:center;gap:.5rem;background:transparent;color:var(--fg);padding:.625rem 1.25rem;border-radius:var(--radius);font-weight:500;border:1px solid var(--border);cursor:pointer;font-size:.875rem;font-family:inherit;transition:background-color .3s ease;text-decoration:none}
+.btn-outline:hover{background:var(--muted);color:var(--fg)}
+table{width:100%;border-collapse:collapse;font-size:.875rem}
+thead{background:rgba(0,0,0,0.03)}
+[data-theme="dark"] thead{background:rgba(255,255,255,0.03)}
+th{padding:.75rem 1.5rem;text-align:left;font-weight:500;color:var(--muted-fg)}
+td{padding:1rem 1.5rem}
+tbody tr{border-top:1px solid var(--border);transition:background-color .2s}
+tbody tr:hover{background:rgba(0,0,0,0.02)}
+[data-theme="dark"] tbody tr:hover{background:rgba(255,255,255,0.02)}
+.badge{display:inline-flex;align-items:center;padding:.125rem .625rem;border-radius:9999px;font-size:.75rem;font-weight:600;color:#fff}
+.badge-critical{background:var(--severity-critical)}.badge-high{background:var(--severity-high)}.badge-medium{background:var(--severity-medium);color:var(--fg)}.badge-low{background:var(--severity-low)}.badge-pass{background:var(--severity-pass)}.badge-fail{background:var(--severity-critical)}.badge-warn{background:var(--severity-high)}.badge-info{background:#1976d2}
+.form-input{width:100%;padding:.625rem 1rem;border-radius:var(--radius);background:var(--bg);border:1px solid var(--input);color:var(--fg);font-family:inherit;font-size:.875rem;outline:none;transition:border-color .3s ease,background-color .3s ease}
+.form-input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(25,118,210,0.2)}
+.form-input::placeholder{color:var(--muted-fg)}
+.form-label{display:block;font-size:.875rem;font-weight:500;margin-bottom:.375rem;color:var(--fg)}
+.form-select{width:100%;padding:.625rem 1rem;border-radius:var(--radius);background:var(--card);border:1px solid var(--input);color:var(--fg);font-family:inherit;font-size:.875rem;outline:none;transition:border-color .3s ease,background-color .3s ease}
+.finding-row-fail{border-left:4px solid var(--severity-critical)}
+.finding-row-pass{border-left:4px solid var(--severity-pass)}
+.finding-row-warn{border-left:4px solid var(--severity-high)}
+.progress-bar{width:100%;height:.5rem;background:var(--muted);border-radius:9999px;overflow:hidden}
+.progress-bar-lg{height:1rem}
+.progress-fill{height:100%;border-radius:9999px;transition:width .7s ease}
+.fill-critical{background:var(--severity-critical)}.fill-high{background:var(--severity-high)}.fill-medium{background:var(--severity-medium)}.fill-pass{background:var(--severity-pass)}
+.font-mono{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace}
+.text-muted{color:var(--muted-fg)}
+.text-primary{color:var(--primary)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.animate-spin{animation:spin 1s linear infinite}
+.animate-fade-in{animation:fadeIn .5s ease-out}
+.mobile-toggle{display:none;position:fixed;top:1rem;left:1rem;z-index:50;background:var(--sidebar-bg);border:none;color:var(--sidebar-fg);padding:.5rem;border-radius:var(--radius);cursor:pointer;font-size:1.25rem}
+.alert-flash{padding:.75rem 1rem;border-radius:var(--radius);margin-bottom:1rem;font-size:.875rem}
+.alert-info{background:rgba(25,118,210,.1);border:1px solid rgba(25,118,210,.3);color:var(--primary)}
+.alert-success{background:rgba(46,125,50,.1);border:1px solid rgba(46,125,50,.3);color:#2e7d32}
+.alert-danger{background:rgba(211,47,47,.1);border:1px solid rgba(211,47,47,.3);color:var(--destructive)}
+.alert-warning{background:rgba(245,124,0,.1);border:1px solid rgba(245,124,0,.3);color:#f57c00}
+@media(max-width:768px){.sidebar{transform:translateX(-100%);transition:transform .3s ease}.sidebar.open{transform:translateX(0)}.main-content{margin-left:0;padding:1rem;padding-top:4rem}.mobile-toggle{display:block}}
+{% block head %}{% endblock %}
+</style>
+</head>
+<body data-theme="dark">
+<button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-toggle" onclick="toggleTheme()">
+      <span id="themeLabel">Dark Mode</span>
+      <span id="themeIcon">☀️</span>
+    </button>
+    <div class="sidebar-logo">
+      <span>🛡️</span><span>AuditFlow</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/" class="{{ 'active' if request.endpoint == 'index' }}">📊 Dashboard</a>
+      <a href="/new-scan" class="{{ 'active' if request.endpoint == 'new_scan' }}">🔍 New Scan</a>
+      <a href="/reports" class="{{ 'active' if request.endpoint == 'reports' }}">📄 Reports</a>
+    </nav>
+    <div class="sidebar-footer">
+      Philip Paul James &amp; Abraham A Wallace<br>AuditFlow v1.0
+    </div>
+  </aside>
+  <main class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert-flash alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<script>
+const saved = localStorage.getItem('theme') || 'dark';
+document.body.setAttribute('data-theme', saved);
+updateThemeUI(saved);
+function toggleTheme() {
+  const c = document.body.getAttribute('data-theme');
+  const n = c === 'dark' ? 'light' : 'dark';
+  document.body.setAttribute('data-theme', n);
+  localStorage.setItem('theme', n);
+  updateThemeUI(n);
+}
+function updateThemeUI(t) {
+  const icon = document.getElementById('themeIcon');
+  const label = document.getElementById('themeLabel');
+  if (icon) icon.textContent = t === 'dark' ? '☀️' : '🌙';
+  if (label) label.textContent = t === 'dark' ? 'Dark Mode' : 'Light Mode';
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
+  <div>
+    <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:.25rem">Scan Reports</h1>
+    <p style="color:var(--muted-fg);font-size:.875rem">{{ reports|length }} report(s) available</p>
+  </div>
+  <a href="/new-scan" class="btn-primary">➕ New Scan</a>
+</div>
+
+<div class="card" style="overflow:hidden">
+  {% if reports %}
+  <!-- Filter bar -->
+  <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;gap:.75rem;flex-wrap:wrap">
+    <input type="text" id="filterInput" class="form-input" placeholder="🔍 Filter by host or risk level..." style="max-width:320px">
+    <select id="riskFilter" class="form-select" style="width:auto" onchange="filterTable()">
+      <option value="">All Risk Levels</option>
+      <option value="CRITICAL">CRITICAL</option>
+      <option value="HIGH">HIGH</option>
+      <option value="MEDIUM">MEDIUM</option>
+      <option value="LOW">LOW</option>
+    </select>
+  </div>
+  <div style="overflow-x:auto">
+    <table id="reportsTable">
+      <thead>
+        <tr>
+          <th>Target</th><th>Scan Date</th><th>Score</th><th>Risk Level</th><th>Results</th><th style="text-align:right;padding-right:1.5rem">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <td style="font-family:monospace;font-weight:500">🖥️ {{ r.host }}</td>
+          <td style="color:var(--muted-fg);font-size:.8rem">{{ r.scan_time[:19].replace('T',' ') }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <div class="progress-bar" style="width:60px">
+                <div class="progress-fill {% if r.score >= 80 %}fill-pass{% elif r.score >= 60 %}fill-medium{% elif r.score >= 40 %}fill-high{% else %}fill-critical{% endif %}" style="width:{{ r.score }}%"></div>
+              </div>
+              <span style="font-weight:600;font-size:.875rem">{{ r.score }}%</span>
+            </div>
+          </td>
+          <td>
+            {% if r.risk == 'CRITICAL' %}<span class="badge badge-critical">{{ r.risk }}</span>
+            {% elif r.risk == 'HIGH' %}<span class="badge badge-high">{{ r.risk }}</span>
+            {% elif r.risk == 'MEDIUM' %}<span class="badge badge-medium">{{ r.risk }}</span>
+            {% else %}<span class="badge badge-pass">{{ r.risk }}</span>{% endif %}
+          </td>
+          <td style="font-size:.8rem">
+            <span style="color:var(--severity-pass);font-weight:500">✅ {{ r.passed }} passed</span>
+            <span style="color:var(--destructive);font-weight:500;margin-left:.5rem">❌ {{ r.failed }} failed</span>
+          </td>
+          <td style="text-align:right;padding-right:1.5rem">
+            <div style="display:flex;gap:.5rem;justify-content:flex-end">
+              <a href="/reports/{{ r.report_id }}" title="View" style="padding:.375rem .625rem;border-radius:var(--radius);background:var(--muted);color:var(--fg);font-size:.8rem">👁️</a>
+              <a href="/reports/{{ r.report_id }}/download" title="Download HTML" style="padding:.375rem .625rem;border-radius:var(--radius);background:var(--muted);color:var(--fg);font-size:.8rem">⬇️</a>
+              <a href="/reports/{{ r.report_id }}/pdf" title="Download PDF" style="padding:.375rem .625rem;border-radius:var(--radius);background:var(--muted);color:var(--fg);font-size:.8rem">📄</a>
+              <form method="POST" action="/reports/{{ r.report_id }}/delete" style="display:inline" onsubmit="return confirm('Delete report {{ r.report_id }}?')">
+                <button type="submit" title="Delete" style="padding:.375rem .625rem;border-radius:var(--radius);background:rgba(211,47,47,.1);color:var(--destructive);border:none;cursor:pointer;font-size:.8rem">🗑️</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:4rem 2rem;color:var(--muted-fg)">
+    <div style="font-size:3rem;margin-bottom:1rem">📂</div>
+    <p style="font-weight:500;margin-bottom:.5rem">No reports yet</p>
+    <p style="font-size:.875rem;margin-bottom:1.5rem">Run your first scan to generate a security report</p>
+    <a href="/new-scan" class="btn-primary">🔍 Start Scanning</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterTable() {
+  const q = document.getElementById('filterInput').value.toLowerCase();
+  const risk = document.getElementById('riskFilter').value.toLowerCase();
+  document.querySelectorAll('#reportsTable tbody tr').forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = (text.includes(q) && (!risk || text.includes(risk))) ? '' : 'none';
+  });
+}
+document.getElementById('filterInput')?.addEventListener('input', filterTable);
+</script>
+{% endblock %}

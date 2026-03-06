@@ -1,0 +1,50 @@
+# VULNERABLE SSH CONFIG - FOR TESTING ONLY
+# Intentional failures:
+#   PermitRootLogin yes          → FAIL
+#   PasswordAuthentication yes   → FAIL
+#   PermitEmptyPasswords no      → PASS
+#   MaxAuthTries 6               → FAIL (should be <= 4)
+#   ClientAliveInterval 600      → FAIL (should be <= 300)
+#   X11Forwarding yes            → FAIL
+#   AllowTcpForwarding yes       → FAIL
+#   Banner none                  → FAIL
+#   LogLevel QUIET               → FAIL
+
+Port 22
+Protocol 2
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# FAILS (CIS requires 'no' or 'prohibit-password')
+PermitRootLogin yes
+
+# FAILS (should be 'no')
+PasswordAuthentication yes
+
+# PASSES
+PermitEmptyPasswords no
+
+# FAILS (should be <= 4)
+MaxAuthTries 6
+
+# FAILS (should be <= 300)
+ClientAliveInterval 600
+ClientAliveCountMax 3
+
+# FAILS (should be 'no')
+X11Forwarding yes
+
+# FAILS (should be 'no')
+AllowTcpForwarding yes
+
+# FAILS (should be set to a banner file)
+Banner none
+
+# FAILS (should be VERBOSE or INFO)
+LogLevel QUIET
+
+UsePAM yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server

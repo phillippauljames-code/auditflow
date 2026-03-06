@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # AuditFlow Web Application
+  auditflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./reports:/app/reports
+    environment:
+      - SECRET_KEY=change-me-in-production
+    depends_on:
+      - vulnerable-target
+    restart: unless-stopped
+
+  # Vulnerable Test Target (intentionally insecure)
+  vulnerable-target:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "2222:22"    # SSH (mapped to avoid conflict)
+      - "2121:21"    # FTP
+      - "4445:445"   # SMB
+    privileged: true  # Needed for some service starts
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+
+volumes:
+  reports:

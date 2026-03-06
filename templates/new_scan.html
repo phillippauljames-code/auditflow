@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}New Scan{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:2rem">
+  <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:.25rem">New Security Scan</h1>
+  <p style="color:var(--muted-fg);font-size:.875rem">Configure target and credentials to begin audit</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 380px;gap:1.5rem;align-items:start">
+
+  <!-- Scan Form -->
+  <div class="card" style="padding:1.5rem">
+    <h2 style="font-size:1rem;font-weight:600;margin-bottom:1.5rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)">🎯 Scan Configuration</h2>
+    <form method="POST" action="/new-scan">
+
+      <div style="margin-bottom:1.25rem">
+        <label class="form-label">Target Host <span style="color:var(--destructive)">*</span></label>
+        <input type="text" name="host" class="form-input" required placeholder="192.168.1.1 or hostname" autofocus>
+        <p style="font-size:.75rem;color:var(--muted-fg);margin-top:.375rem">IP address or hostname of the target system</p>
+      </div>
+
+      <div style="background:var(--muted);border-radius:var(--radius);padding:1rem;margin-bottom:1.25rem">
+        <p style="font-size:.875rem;font-weight:600;margin-bottom:1rem">🔑 SSH Credentials</p>
+        <div style="margin-bottom:.75rem">
+          <label class="form-label">Username</label>
+          <input type="text" name="username" class="form-input" value="root" placeholder="root">
+        </div>
+        <div style="margin-bottom:.75rem">
+          <label class="form-label">Password</label>
+          <input type="password" name="password" class="form-input" placeholder="SSH Password">
+        </div>
+        <div>
+          <label class="form-label">SSH Key Path <span style="color:var(--muted-fg);font-weight:400">(optional)</span></label>
+          <input type="text" name="key_path" class="form-input" placeholder="/path/to/id_rsa">
+          <p style="font-size:.75rem;color:var(--muted-fg);margin-top:.375rem">Leave blank if using password authentication</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.5rem">
+        <label class="form-label">Port Range</label>
+        <input type="text" name="port_range" class="form-input" value="1-1024" placeholder="1-1024">
+        <p style="font-size:.75rem;color:var(--muted-fg);margin-top:.375rem">Range for port scanning (e.g. 1-65535)</p>
+      </div>
+
+      <div style="display:flex;gap:.75rem">
+        <button type="submit" class="btn-primary" style="flex:1;justify-content:center;padding:.75rem">🔍 Launch Scan</button>
+        <a href="/" class="btn-outline" style="padding:.75rem 1.5rem">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Info Panels -->
+  <div style="display:flex;flex-direction:column;gap:1rem">
+    <div style="background:var(--primary);border-radius:.75rem;padding:1.5rem;color:#fff">
+      <h3 style="font-size:.875rem;font-weight:700;margin-bottom:1rem">✅ What AuditFlow Checks</h3>
+      <ul style="list-style:none;font-size:.875rem;display:flex;flex-direction:column;gap:.5rem">
+        <li>🔐 SSH configuration (CIS Benchmarks)</li>
+        <li>🔥 Firewall status (UFW, firewalld)</li>
+        <li>🌐 Dangerous open ports (FTP, Telnet, SMB)</li>
+        <li>🔑 Password policy (/etc/login.defs, PAM)</li>
+        <li>⚙️ Insecure services (telnet, rsh, vsftpd)</li>
+      </ul>
+    </div>
+
+    <div class="card" style="padding:1.5rem">
+      <h3 style="font-size:.875rem;font-weight:700;margin-bottom:.75rem">🐳 Docker Test Target</h3>
+      <p style="font-size:.75rem;color:var(--muted-fg);margin-bottom:.75rem">Spin up a vulnerable test target:</p>
+      <div style="background:var(--muted);border-radius:var(--radius);padding:.75rem;font-family:monospace;font-size:.75rem;white-space:pre-wrap">docker-compose up -d vulnerable-target
+
+Host: localhost
+User: root
+Pass: toor123
+Port: 22</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

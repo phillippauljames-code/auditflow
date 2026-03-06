@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report 6826bb61 - AuditFlow</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f5f5f5;--fg:#333;--card:#fff;--card-fg:#333;--primary:#1976d2;--primary-fg:#fff;--muted:#e5e7eb;--muted-fg:#6b7280;--border:#e0e0e0;--destructive:#d32f2f;--severity-critical:#d32f2f;--severity-high:#f57c00;--severity-medium:#fbc02d;--severity-low:#757575;--severity-pass:#2e7d32;--sidebar-bg:#1a1f36;--sidebar-fg:#c5cae0;--sidebar-hover:#252b45;--sidebar-active:#1976d2;--radius:0.5rem}
+[data-theme="dark"]{--bg:#0f1117;--fg:#e0e0e0;--card:#1a1f36;--card-fg:#e0e0e0;--muted:#252b45;--muted-fg:#9ca3af;--border:#252b45;--sidebar-bg:#0a0d1a;--sidebar-hover:#151a2e}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:#333;-webkit-font-smoothing:antialiased;transition:background-color .3s,color .3s}
+a{color:#1976d2;text-decoration:none}
+.layout{display:flex;min-height:100vh}
+.main-content{flex:1;margin-left:256px;padding:2rem}
+.sidebar{position:fixed;top:0;left:0;width:256px;height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;z-index:40;transition:background-color .3s,transform .3s}
+.sidebar-toggle{margin:1rem 1rem 0;display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border-radius:var(--radius);background:var(--sidebar-hover);color:var(--sidebar-fg);border:none;cursor:pointer;font-size:.875rem;font-family:inherit}
+.sidebar-logo{padding:1.5rem;display:flex;align-items:center;gap:.5rem;font-size:1.25rem;font-weight:700;color:var(--sidebar-fg)}
+.sidebar-nav{flex:1;padding:0 .75rem}
+.sidebar-nav a{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:var(--radius);font-size:.875rem;font-weight:500;color:var(--sidebar-fg);transition:background-color .3s;margin-bottom:.25rem}
+.sidebar-nav a:hover{background:var(--sidebar-hover)}
+.sidebar-nav a.active{background:var(--sidebar-active);color:#fff}
+.sidebar-footer{padding:1rem 1.5rem;font-size:.75rem;color:rgba(197,202,224,0.5)}
+.card{background:#ffffff;border:1px solid #e0e0e0;border-radius:.75rem;transition:background-color .3s,border-color .3s}
+.badge{display:inline-flex;align-items:center;padding:.125rem .625rem;border-radius:9999px;font-size:.75rem;font-weight:600;color:#fff}
+.badge-critical{background:#d32f2f}.badge-high{background:#f57c00}.badge-medium{background:#fbc02d;color:#333}.badge-low{background:#757575}.badge-pass{background:#2e7d32}.badge-fail{background:#d32f2f}.badge-warn{background:#f57c00}.badge-info{background:#1976d2}
+table{width:100%;border-collapse:collapse;font-size:.875rem}
+thead{background:rgba(0,0,0,0.03)}[data-theme="dark"] thead{background:rgba(255,255,255,0.03)}
+th{padding:.75rem 1.5rem;text-align:left;font-weight:500;color:#6b7280;cursor:pointer}
+td{padding:.75rem 1.5rem}
+tbody tr{border-top:1px solid var(--border)}
+.finding-row-fail{border-left:4px solid #d32f2f}
+.finding-row-pass{border-left:4px solid #2e7d32}
+.finding-row-warn{border-left:4px solid #f57c00}
+.progress-bar{width:100%;height:.5rem;background:#e5e7eb;border-radius:9999px;overflow:hidden}
+.progress-bar-lg{height:1rem}
+.progress-fill{height:100%;border-radius:9999px;transition:width .7s}
+.header-btn{display:inline-flex;align-items:center;gap:.375rem;background:rgba(255,255,255,0.2);padding:.5rem 1rem;border-radius:var(--radius);font-size:.875rem;font-weight:500;color:#fff;border:none;cursor:pointer;font-family:inherit;transition:background-color .2s;text-decoration:none}
+.header-btn:hover{background:rgba(255,255,255,0.35);color:#fff}
+.config-block{margin-top:.5rem;background:rgba(251,192,45,0.15);border-radius:.375rem;padding:.625rem;font-size:.75rem;font-family:monospace;border-left:3px solid var(--severity-medium)}
+.remediation-block{margin-top:.5rem;background:rgba(25,118,210,0.1);border-radius:.375rem;padding:.625rem;font-size:.75rem;font-family:monospace;color:#1976d2;white-space:pre-wrap;border-left:3px solid var(--primary)}
+.form-input{padding:.5rem .75rem;border-radius:var(--radius);background:var(--bg);border:1px solid #e0e0e0;color:#333;font-family:inherit;font-size:.875rem;outline:none}
+.form-select{padding:.5rem .75rem;border-radius:var(--radius);background:#ffffff;border:1px solid #e0e0e0;color:#333;font-family:inherit;font-size:.875rem;outline:none}
+.mobile-toggle{display:none;position:fixed;top:1rem;left:1rem;z-index:50;background:var(--sidebar-bg);border:none;color:var(--sidebar-fg);padding:.5rem;border-radius:var(--radius);cursor:pointer;font-size:1.25rem}
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main-content{margin-left:0;padding:1rem;padding-top:4rem}.mobile-toggle{display:block}.summary-grid{grid-template-columns:repeat(2,1fr)!important}.cat-grid{grid-template-columns:1fr!important}.header-actions{flex-direction:column}}
+@media print{}
+</style>
+</head>
+<body data-theme="dark">
+<button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')"></button>
+<div class="layout">
+<aside class="sidebar" id="sidebar">
+  <button class="sidebar-toggle" onclick="toggleTheme()"><span id="themeLabel">Dark Mode</span><span id="themeIcon"></span></button>
+  <div class="sidebar-logo"><span></span><span>AuditFlow</span></div>
+  <nav class="sidebar-nav">
+    <a href="/"> Dashboard</a>
+    <a href="/new-scan"> New Scan</a>
+    <a href="/reports" class="active"> Reports</a>
+  </nav>
+  <div class="sidebar-footer">Philip Paul James &amp; Abraham A Wallace<br>AuditFlow v1.0</div>
+</aside>
+
+<main class="main-content">
+
+  
+
+  <!-- Blue Gradient Header -->
+  <div style="background:#1976d2;border-radius:.75rem;padding:1.5rem 2rem;margin-bottom:2rem;color:#fff">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem">
+      <div>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+          <span style="font-size:1.75rem"></span>
+          <h1 style="font-size:1.5rem;font-weight:700">AuditFlow Security Report</h1>
+        </div>
+        <p style="opacity:.9;font-size:.875rem">Target: 127.0.0.1 &nbsp;|&nbsp; 2026-02-25 23:04:48 UTC</p>
+      </div>
+      <div class="header-actions" style="display:flex;flex-wrap:wrap;gap:.5rem">
+        <button class="header-btn" onclick="window.print()"> Print</button>
+        <a href="/reports/6826bb61/download" class="header-btn"> HTML</a>
+        <a href="/reports/6826bb61/pdf" class="header-btn"> PDF</a>
+        <a href="/reports" class="header-btn"> Back</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meta Info -->
+  <div class="card" style="padding:1.5rem;margin-bottom:1.5rem;overflow-x:auto">
+    <table>
+      <tr style="border-top:none">
+        <td style="font-weight:500;color:#6b7280">Target</td>
+        <td style="font-family:monospace">127.0.0.1</td>
+        <td style="font-weight:500;color:#6b7280;padding-left:2rem">OS</td>
+        <td>Windows-11-10.0.26200-SP0</td>
+      </tr>
+      <tr>
+        <td style="font-weight:500;color:#6b7280">Scan Date</td>
+        <td>2026-02-25 23:04:48</td>
+        <td style="font-weight:500;color:#6b7280;padding-left:2rem">Connection</td>
+        <td>LOCAL</td>
+      </tr>
+      <tr>
+        <td style="font-weight:500;color:#6b7280">Report ID</td>
+        <td style="font-family:monospace">6826bb61</td>
+        <td style="font-weight:500;color:#6b7280;padding-left:2rem">Risk Level</td>
+        <td>
+          <span class="badge badge-high">HIGH</span>
+          
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Summary Cards -->
+  
+  
+  
+  <div class="summary-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem"></div><p style="font-size:1.5rem;font-weight:700">24</p><p style="font-size:.7rem;color:#6b7280">Total</p></div>
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem"></div><p style="font-size:1.5rem;font-weight:700;color:#2e7d32">4</p><p style="font-size:.7rem;color:#6b7280">Passed</p></div>
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem"></div><p style="font-size:1.5rem;font-weight:700;color:#d32f2f">4</p><p style="font-size:.7rem;color:#6b7280">Failed</p></div>
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem"></div><p style="font-size:1.5rem;font-weight:700;color:var(--severity-critical)">1</p><p style="font-size:.7rem;color:#6b7280">Critical</p></div>
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem"></div><p style="font-size:1.5rem;font-weight:700;color:var(--severity-high)">2</p><p style="font-size:.7rem;color:#6b7280">High</p></div>
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem"></div><p style="font-size:1.5rem;font-weight:700;color:var(--severity-medium)">1</p><p style="font-size:.7rem;color:#6b7280">Medium</p></div>
+  </div>
+
+  <!-- Compliance Score -->
+  <div class="card" style="padding:1.5rem;margin-bottom:1.5rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+      <h3 style="font-weight:600"> Compliance Score</h3>
+      <span style="font-size:1.5rem;font-weight:700">50%</span>
+    </div>
+    <div class="progress-bar progress-bar-lg">
+      <div class="progress-fill" style="width:50%;background:#f57c00"></div>
+    </div>
+    <p style="font-size:.8rem;color:#6b7280;margin-top:.75rem;text-align:center">Based on 24 security checks against CIS Benchmarks and NIST guidelines</p>
+
+    <!-- Category Breakdown -->
+    <div class="cat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.5rem">
+      
+        
+        <div style="padding:1rem;background:#e5e7eb;border-radius:.5rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+            <span style="font-size:.875rem;font-weight:500">SSH</span>
+            <span style="font-size:.75rem;color:#6b7280">0/0</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:0%;background:#d32f2f"></div>
+          </div>
+          <p style="font-size:.7rem;color:#6b7280;margin-top:.25rem">0% compliance</p>
+        </div>
+      
+        
+        <div style="padding:1rem;background:#e5e7eb;border-radius:.5rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+            <span style="font-size:.875rem;font-weight:500">Firewall</span>
+            <span style="font-size:.75rem;color:#6b7280">0/2</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:0%;background:#d32f2f"></div>
+          </div>
+          <p style="font-size:.7rem;color:#6b7280;margin-top:.25rem">0% compliance</p>
+        </div>
+      
+        
+        <div style="padding:1rem;background:#e5e7eb;border-radius:.5rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+            <span style="font-size:.875rem;font-weight:500">Ports</span>
+            <span style="font-size:.75rem;color:#6b7280">4/6</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:67%;background:#fbc02d"></div>
+          </div>
+          <p style="font-size:.7rem;color:#6b7280;margin-top:.25rem">67% compliance</p>
+        </div>
+      
+        
+        <div style="padding:1rem;background:#e5e7eb;border-radius:.5rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+            <span style="font-size:.875rem;font-weight:500">Password Policy</span>
+            <span style="font-size:.75rem;color:#6b7280">0/0</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:0%;background:#d32f2f"></div>
+          </div>
+          <p style="font-size:.7rem;color:#6b7280;margin-top:.25rem">0% compliance</p>
+        </div>
+      
+        
+        <div style="padding:1rem;background:#e5e7eb;border-radius:.5rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+            <span style="font-size:.875rem;font-weight:500">Services</span>
+            <span style="font-size:.75rem;color:#6b7280">0/0</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:0%;background:#d32f2f"></div>
+          </div>
+          <p style="font-size:.7rem;color:#6b7280;margin-top:.25rem">0% compliance</p>
+        </div>
+      
+    </div>
+  </div>
+
+  <!-- Network Info -->
+  
+  <div class="card" style="padding:1.5rem;margin-bottom:1.5rem">
+    <h3 style="font-weight:600;margin-bottom:1rem"> Network Information</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+      
+        <span class="badge badge-pass" style="padding:.375rem .75rem">
+          Port 21: CLOSED
+        </span>
+      
+        <span class="badge badge-pass" style="padding:.375rem .75rem">
+          Port 23: CLOSED
+        </span>
+      
+        <span class="badge badge-critical" style="padding:.375rem .75rem">
+          Port 445: OPEN
+        </span>
+      
+        <span class="badge badge-critical" style="padding:.375rem .75rem">
+          Port 135: OPEN
+        </span>
+      
+        <span class="badge badge-pass" style="padding:.375rem .75rem">
+          Port 139: CLOSED
+        </span>
+      
+        <span class="badge badge-pass" style="padding:.375rem .75rem">
+          Port 6379: CLOSED
+        </span>
+      
+      
+    </div>
+  </div>
+
+  <!-- Critical Findings -->
+  
+  
+  <div class="card" style="border-left:4px solid #d32f2f;margin-bottom:1.5rem;overflow:hidden">
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)"><h3 style="font-weight:600"> Critical Findings (Immediate Action Required)</h3></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
+        <tbody>
+          
+          <tr>
+            <td style="font-weight:500">Host Firewall Active<br><small style="color:#6b7280;font-weight:400">Firewall</small></td>
+            <td><span class="badge badge-fail">FAIL</span></td>
+            <td>
+              <p style="color:#6b7280;font-size:.875rem">A host-based firewall (UFW, firewalld, or iptables) must be active to control network traffic and limit the attack surface.
+</p>
+              
+              <div class="config-block"><span style="color:#6b7280">Current: </span>False</div>
+              
+              
+              <div class="remediation-block"><span style="color:#6b7280">Remediation: </span>Enable UFW:
+  ufw enable
+  ufw default deny incoming
+  ufw default allow outgoing
+  ufw allow ssh
+</div>
+              
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+
+  <!-- High Severity Findings -->
+  
+  
+  <div class="card" style="border-left:4px solid #f57c00;margin-bottom:1.5rem;overflow:hidden">
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)"><h3 style="font-weight:600"> High Severity Findings</h3></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
+        <tbody>
+          
+          <tr>
+            <td style="font-weight:500">UFW Firewall Enabled<br><small style="color:#6b7280;font-weight:400">Firewall</small></td>
+            <td><span class="badge badge-fail">FAIL</span></td>
+            <td>
+              <p style="color:#6b7280;font-size:.875rem">UFW (Uncomplicated Firewall) should be enabled and configured.
+</p>
+              
+              <div class="config-block"><span style="color:#6b7280">Current: </span>False</div>
+              
+              
+              <div class="remediation-block"><span style="color:#6b7280">Remediation: </span>sudo ufw enable
+sudo ufw status verbose
+</div>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td style="font-weight:500">SMB Port 445 Closed (External)<br><small style="color:#6b7280;font-weight:400">Ports</small></td>
+            <td><span class="badge badge-fail">FAIL</span></td>
+            <td>
+              <p style="color:#6b7280;font-size:.875rem">SMB exposed externally is a major attack vector (EternalBlue, WannaCry).
+</p>
+              
+              <div class="config-block"><span style="color:#6b7280">Current: </span>Port 445: OPEN</div>
+              
+              
+              <div class="remediation-block"><span style="color:#6b7280">Remediation: </span>Block SMB externally:
+  ufw deny 445
+Disable Samba if not needed:
+  systemctl disable smbd nmbd --now
+</div>
+              
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+
+  <!-- Medium Severity Findings -->
+  
+  
+  <div class="card" style="border-left:4px solid #fbc02d;margin-bottom:1.5rem;overflow:hidden">
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)"><h3 style="font-weight:600"> Medium Severity Findings</h3></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
+        <tbody>
+          
+          <tr>
+            <td style="font-weight:500">MS-RPC Port 135 Closed<br><small style="color:#6b7280;font-weight:400">Ports</small></td>
+            <td><span class="badge badge-fail">FAIL</span></td>
+            <td>
+              <p style="color:#6b7280;font-size:.875rem">MS-RPC port is frequently targeted and should not be publicly accessible.
+</p>
+              
+              <div class="config-block"><span style="color:#6b7280">Current: </span>Port 135: OPEN</div>
+              
+              
+              <div class="remediation-block"><span style="color:#6b7280">Remediation: </span>ufw deny 135
+</div>
+              
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+
+  <!-- Complete Findings Table -->
+  <div class="card" style="margin-bottom:1.5rem;overflow:hidden">
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)">
+      <h3 style="font-weight:600;margin-bottom:.75rem"> Complete Findings</h3>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <input type="text" id="tableFilter" class="form-input" placeholder=" Filter..." style="max-width:250px" oninput="filterFindings()">
+        <select id="statusFilter" class="form-select" style="width:auto" onchange="filterFindings()">
+          <option value="">All Status</option>
+          <option value="FAIL">FAIL</option>
+          <option value="PASS">PASS</option>
+          <option value="INFO">INFO</option>
+        </select>
+        <select id="severityFilter" class="form-select" style="width:auto" onchange="filterFindings()">
+          <option value="">All Severity</option>
+          <option value="CRITICAL">CRITICAL</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="LOW">LOW</option>
+        </select>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table id="completeTable">
+        <thead><tr><th onclick="sortTable(0)">Check </th><th onclick="sortTable(1)">Severity </th><th onclick="sortTable(2)">Status </th><th onclick="sortTable(3)">Category </th><th>Details</th></tr></thead>
+        <tbody>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">SSH Root Login Disabled</td>
+            <td>
+              <span class="badge badge-critical">CRITICAL</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">SSH</td>
+            <td style="color:#6b7280;font-size:.8rem">Allowing direct root login via SSH bypasses auditing and reduces accountability. CIS Benchmark requi...
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">SSH Password Authentication Disabled</td>
+            <td>
+              <span class="badge badge-high">HIGH</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">SSH</td>
+            <td style="color:#6b7280;font-size:.8rem">Password authentication is susceptible to brute-force attacks. Key-based authentication should be en...
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">SSH Empty Passwords Disallowed</td>
+            <td>
+              <span class="badge badge-critical">CRITICAL</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">SSH</td>
+            <td style="color:#6b7280;font-size:.8rem">Permitting empty passwords allows unauthenticated access.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">SSH MaxAuthTries &lt;= 4</td>
+            <td>
+              <span class="badge badge-medium">MEDIUM</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">SSH</td>
+            <td style="color:#6b7280;font-size:.8rem">Limiting authentication attempts reduces brute-force risk.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">SSH Idle Timeout Configured</td>
+            <td>
+              <span class="badge badge-medium">MEDIUM</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">SSH</td>
+            <td style="color:#6b7280;font-size:.8rem">Idle SSH sessions should timeout to prevent unauthorized access from unattended terminals.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">SSH X11 Forwarding Disabled</td>
+            <td>
+              <span class="badge badge-low">LOW</span>
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">SSH</td>
+            <td style="color:#6b7280;font-size:.8rem">X11 forwarding enables graphical session forwarding which increases the attack surface.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">SSH TCP Forwarding Disabled</td>
+            <td>
+              <span class="badge badge-medium">MEDIUM</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">SSH</td>
+            <td style="color:#6b7280;font-size:.8rem">TCP forwarding can be used to bypass network controls.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">SSH Login Banner Configured</td>
+            <td>
+              <span class="badge badge-low">LOW</span>
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">SSH</td>
+            <td style="color:#6b7280;font-size:.8rem">A legal warning banner should be presented to users before authentication to establish legal framewo...
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">SSH Logging Set to VERBOSE or INFO</td>
+            <td>
+              <span class="badge badge-low">LOW</span>
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">SSH</td>
+            <td style="color:#6b7280;font-size:.8rem">Adequate logging allows forensic analysis of authentication events.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-fail">
+            <td style="font-weight:500">Host Firewall Active</td>
+            <td>
+              <span class="badge badge-critical">CRITICAL</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-fail">FAIL</span>
+              
+            </td>
+            <td style="color:#6b7280">Firewall</td>
+            <td style="color:#6b7280;font-size:.8rem">A host-based firewall (UFW, firewalld, or iptables) must be active to control network traffic and li...
+              
+              <div style="margin-top:.375rem;font-family:monospace;font-size:.75rem;background:rgba(251,192,45,.1);padding:.375rem;border-radius:.25rem">False</div>
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-fail">
+            <td style="font-weight:500">UFW Firewall Enabled</td>
+            <td>
+              <span class="badge badge-high">HIGH</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-fail">FAIL</span>
+              
+            </td>
+            <td style="color:#6b7280">Firewall</td>
+            <td style="color:#6b7280;font-size:.8rem">UFW (Uncomplicated Firewall) should be enabled and configured.
+
+              
+              <div style="margin-top:.375rem;font-family:monospace;font-size:.75rem;background:rgba(251,192,45,.1);padding:.375rem;border-radius:.25rem">False</div>
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-pass">
+            <td style="font-weight:500">FTP Port 21 Closed</td>
+            <td>
+              <span class="badge badge-high">HIGH</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-pass">PASS</span>
+              
+            </td>
+            <td style="color:#6b7280">Ports</td>
+            <td style="color:#6b7280;font-size:.8rem">FTP transmits credentials in plaintext and should not be accessible. Use SFTP or FTPS instead.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-pass">
+            <td style="font-weight:500">Telnet Port 23 Closed</td>
+            <td>
+              <span class="badge badge-critical">CRITICAL</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-pass">PASS</span>
+              
+            </td>
+            <td style="color:#6b7280">Ports</td>
+            <td style="color:#6b7280;font-size:.8rem">Telnet transmits all data including credentials in plaintext. Replace with SSH immediately.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-fail">
+            <td style="font-weight:500">SMB Port 445 Closed (External)</td>
+            <td>
+              <span class="badge badge-high">HIGH</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-fail">FAIL</span>
+              
+            </td>
+            <td style="color:#6b7280">Ports</td>
+            <td style="color:#6b7280;font-size:.8rem">SMB exposed externally is a major attack vector (EternalBlue, WannaCry).
+
+              
+              <div style="margin-top:.375rem;font-family:monospace;font-size:.75rem;background:rgba(251,192,45,.1);padding:.375rem;border-radius:.25rem">Port 445: OPEN</div>
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-fail">
+            <td style="font-weight:500">MS-RPC Port 135 Closed</td>
+            <td>
+              <span class="badge badge-medium">MEDIUM</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-fail">FAIL</span>
+              
+            </td>
+            <td style="color:#6b7280">Ports</td>
+            <td style="color:#6b7280;font-size:.8rem">MS-RPC port is frequently targeted and should not be publicly accessible.
+
+              
+              <div style="margin-top:.375rem;font-family:monospace;font-size:.75rem;background:rgba(251,192,45,.1);padding:.375rem;border-radius:.25rem">Port 135: OPEN</div>
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-pass">
+            <td style="font-weight:500">NetBIOS Port 139 Closed</td>
+            <td>
+              <span class="badge badge-medium">MEDIUM</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-pass">PASS</span>
+              
+            </td>
+            <td style="color:#6b7280">Ports</td>
+            <td style="color:#6b7280;font-size:.8rem">NetBIOS session service should not be exposed externally.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-pass">
+            <td style="font-weight:500">Redis Port 6379 Closed (No Auth)</td>
+            <td>
+              <span class="badge badge-high">HIGH</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-pass">PASS</span>
+              
+            </td>
+            <td style="color:#6b7280">Ports</td>
+            <td style="color:#6b7280;font-size:.8rem">Unauthenticated Redis exposure enables data theft and RCE.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">Password Maximum Age &lt;= 90 Days</td>
+            <td>
+              <span class="badge badge-medium">MEDIUM</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">Password Policy</td>
+            <td style="color:#6b7280;font-size:.8rem">Passwords should be rotated at least every 90 days per CIS Benchmark.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">Password Minimum Age &gt;= 1 Day</td>
+            <td>
+              <span class="badge badge-low">LOW</span>
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">Password Policy</td>
+            <td style="color:#6b7280;font-size:.8rem">Minimum password age prevents users from cycling through passwords to return to a previous one.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">Password Expiry Warning &gt;= 7 Days</td>
+            <td>
+              <span class="badge badge-low">LOW</span>
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">Password Policy</td>
+            <td style="color:#6b7280;font-size:.8rem">Users should receive adequate warning before password expiration.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">Password Minimum Length &gt;= 14</td>
+            <td>
+              <span class="badge badge-medium">MEDIUM</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">Password Policy</td>
+            <td style="color:#6b7280;font-size:.8rem">Longer passwords significantly increase resistance to brute-force. CIS recommends minimum 14 charact...
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">Telnet Service Disabled</td>
+            <td>
+              <span class="badge badge-critical">CRITICAL</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">Services</td>
+            <td style="color:#6b7280;font-size:.8rem">The telnet service transmits all data in plaintext including credentials. It must not be running.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">FTP Service (vsftpd) Disabled</td>
+            <td>
+              <span class="badge badge-high">HIGH</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">Services</td>
+            <td style="color:#6b7280;font-size:.8rem">FTP transmits credentials in plaintext. Use SFTP instead.
+
+              
+            </td>
+          </tr>
+          
+          <tr class="finding-row-info">
+            <td style="font-weight:500">RSH Service Disabled</td>
+            <td>
+              <span class="badge badge-critical">CRITICAL</span>
+              
+            </td>
+            <td>
+              <span class="badge badge-info">INFO</span>
+            </td>
+            <td style="color:#6b7280">Services</td>
+            <td style="color:#6b7280;font-size:.8rem">RSH (Remote Shell) is an extremely insecure legacy protocol.
+
+              
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Passed Checks -->
+  
+  
+  <div class="card" style="margin-bottom:1.5rem;overflow:hidden">
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)"><h3 style="font-weight:600"> Passed Checks (4)</h3></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Check</th><th>Severity</th><th>Category</th><th>Status</th></tr></thead>
+        <tbody>
+          
+          <tr class="finding-row-pass">
+            <td style="font-weight:500">FTP Port 21 Closed</td>
+            <td>
+              <span class="badge badge-high">HIGH</span>
+              
+            </td>
+            <td style="color:#6b7280">Ports</td>
+            <td><span class="badge badge-pass">PASS</span></td>
+          </tr>
+          
+          <tr class="finding-row-pass">
+            <td style="font-weight:500">Telnet Port 23 Closed</td>
+            <td>
+              <span class="badge badge-critical">CRITICAL</span>
+              
+            </td>
+            <td style="color:#6b7280">Ports</td>
+            <td><span class="badge badge-pass">PASS</span></td>
+          </tr>
+          
+          <tr class="finding-row-pass">
+            <td style="font-weight:500">NetBIOS Port 139 Closed</td>
+            <td>
+              <span class="badge badge-medium">MEDIUM</span>
+              
+            </td>
+            <td style="color:#6b7280">Ports</td>
+            <td><span class="badge badge-pass">PASS</span></td>
+          </tr>
+          
+          <tr class="finding-row-pass">
+            <td style="font-weight:500">Redis Port 6379 Closed (No Auth)</td>
+            <td>
+              <span class="badge badge-high">HIGH</span>
+              
+            </td>
+            <td style="color:#6b7280">Ports</td>
+            <td><span class="badge badge-pass">PASS</span></td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+
+  <!-- Footer -->
+  <div class="card" style="padding:1.5rem;text-align:center;color:#6b7280;font-size:.875rem">
+    <p style="font-weight:500">Generated by AuditFlow v1.0</p>
+    <p style="margin-top:.25rem">Developed by Philip Paul James &amp; Abraham A Wallace</p>
+    <p style="margin-top:.25rem;font-family:monospace;font-size:.75rem">Report ID: 6826bb61 &nbsp;|&nbsp; 2026-02-25 23:04:48 UTC</p>
+    <p style="margin-top:.5rem;font-size:.75rem;font-style:italic"> This report is for authorized security assessment only. Unauthorized use is prohibited.</p>
+  </div>
+
+</main>
+</div>
+
+<script>
+const saved = localStorage.getItem('theme') || 'dark';
+document.body.setAttribute('data-theme', saved);
+updateThemeUI(saved);
+function toggleTheme() {
+  const c = document.body.getAttribute('data-theme');
+  const n = c === 'dark' ? 'light' : 'dark';
+  document.body.setAttribute('data-theme', n);
+  localStorage.setItem('theme', n);
+  updateThemeUI(n);
+}
+function updateThemeUI(t) {
+  const icon = document.getElementById('themeIcon');
+  const label = document.getElementById('themeLabel');
+  if (icon) icon.textContent = t === 'dark' ? '' : '';
+  if (label) label.textContent = t === 'dark' ? 'Dark Mode' : 'Light Mode';
+}
+
+// Filter complete findings table
+function filterFindings() {
+  const q = document.getElementById('tableFilter').value.toLowerCase();
+  const st = document.getElementById('statusFilter').value.toLowerCase();
+  const sv = document.getElementById('severityFilter').value.toLowerCase();
+  document.querySelectorAll('#completeTable tbody tr').forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const rowSt = row.cells[2]?.textContent.trim().toLowerCase() || '';
+    const rowSv = row.cells[1]?.textContent.trim().toLowerCase() || '';
+    row.style.display = (
+      (!q || text.includes(q)) &&
+      (!st || rowSt.includes(st)) &&
+      (!sv || rowSv.includes(sv))
+    ) ? '' : 'none';
+  });
+}
+
+// Sort complete findings table
+const sortState = {};
+function sortTable(col) {
+  const tbody = document.querySelector('#completeTable tbody');
+  const rows = Array.from(tbody.rows);
+  const asc = !sortState[col];
+  sortState[col] = asc;
+  const sevOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+  rows.sort((a, b) => {
+    const va = a.cells[col]?.textContent.trim() || '';
+    const vb = b.cells[col]?.textContent.trim() || '';
+    const na = sevOrder[va] ?? va;
+    const nb = sevOrder[vb] ?? vb;
+    if (typeof na === 'number' && typeof nb === 'number') return asc ? na - nb : nb - na;
+    return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+</script>
+<style>
+    .sidebar { display: none !important; }
+    .mobile-toggle { display: none !important; }
+    .main-content { margin-left: 0 !important; padding-top: 0 !important; }
+    .header-actions { display: none !important; }
+    .summary-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; }
+    .cat-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    </style></body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report {{ report_id }} - AuditFlow</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f5f5f5;--fg:#333;--card:#fff;--card-fg:#333;--primary:#1976d2;--primary-fg:#fff;--muted:#e5e7eb;--muted-fg:#6b7280;--border:#e0e0e0;--destructive:#d32f2f;--severity-critical:#d32f2f;--severity-high:#f57c00;--severity-medium:#fbc02d;--severity-low:#757575;--severity-pass:#2e7d32;--sidebar-bg:#1a1f36;--sidebar-fg:#c5cae0;--sidebar-hover:#252b45;--sidebar-active:#1976d2;--radius:0.5rem}
+[data-theme="dark"]{--bg:#0f1117;--fg:#e0e0e0;--card:#1a1f36;--card-fg:#e0e0e0;--muted:#252b45;--muted-fg:#9ca3af;--border:#252b45;--sidebar-bg:#0a0d1a;--sidebar-hover:#151a2e}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased;transition:background-color .3s,color .3s}
+a{color:var(--primary);text-decoration:none}
+.layout{display:flex;min-height:100vh}
+.main-content{flex:1;margin-left:256px;padding:2rem}
+.sidebar{position:fixed;top:0;left:0;width:256px;height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;z-index:40;transition:background-color .3s,transform .3s}
+.sidebar-toggle{margin:1rem 1rem 0;display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border-radius:var(--radius);background:var(--sidebar-hover);color:var(--sidebar-fg);border:none;cursor:pointer;font-size:.875rem;font-family:inherit}
+.sidebar-logo{padding:1.5rem;display:flex;align-items:center;gap:.5rem;font-size:1.25rem;font-weight:700;color:var(--sidebar-fg)}
+.sidebar-nav{flex:1;padding:0 .75rem}
+.sidebar-nav a{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:var(--radius);font-size:.875rem;font-weight:500;color:var(--sidebar-fg);transition:background-color .3s;margin-bottom:.25rem}
+.sidebar-nav a:hover{background:var(--sidebar-hover)}
+.sidebar-nav a.active{background:var(--sidebar-active);color:#fff}
+.sidebar-footer{padding:1rem 1.5rem;font-size:.75rem;color:rgba(197,202,224,0.5)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:.75rem;transition:background-color .3s,border-color .3s}
+.badge{display:inline-flex;align-items:center;padding:.125rem .625rem;border-radius:9999px;font-size:.75rem;font-weight:600;color:#fff}
+.badge-critical{background:var(--severity-critical)}.badge-high{background:var(--severity-high)}.badge-medium{background:var(--severity-medium);color:#333}.badge-low{background:var(--severity-low)}.badge-pass{background:var(--severity-pass)}.badge-fail{background:var(--severity-critical)}.badge-warn{background:var(--severity-high)}.badge-info{background:#1976d2}
+table{width:100%;border-collapse:collapse;font-size:.875rem}
+thead{background:rgba(0,0,0,0.03)}[data-theme="dark"] thead{background:rgba(255,255,255,0.03)}
+th{padding:.75rem 1.5rem;text-align:left;font-weight:500;color:var(--muted-fg);cursor:pointer}
+td{padding:.75rem 1.5rem}
+tbody tr{border-top:1px solid var(--border)}
+.finding-row-fail{border-left:4px solid var(--severity-critical)}
+.finding-row-pass{border-left:4px solid var(--severity-pass)}
+.finding-row-warn{border-left:4px solid var(--severity-high)}
+.progress-bar{width:100%;height:.5rem;background:var(--muted);border-radius:9999px;overflow:hidden}
+.progress-bar-lg{height:1rem}
+.progress-fill{height:100%;border-radius:9999px;transition:width .7s}
+.header-btn{display:inline-flex;align-items:center;gap:.375rem;background:rgba(255,255,255,0.2);padding:.5rem 1rem;border-radius:var(--radius);font-size:.875rem;font-weight:500;color:#fff;border:none;cursor:pointer;font-family:inherit;transition:background-color .2s;text-decoration:none}
+.header-btn:hover{background:rgba(255,255,255,0.35);color:#fff}
+.config-block{margin-top:.5rem;background:rgba(251,192,45,0.15);border-radius:.375rem;padding:.625rem;font-size:.75rem;font-family:monospace;border-left:3px solid var(--severity-medium)}
+.remediation-block{margin-top:.5rem;background:rgba(25,118,210,0.1);border-radius:.375rem;padding:.625rem;font-size:.75rem;font-family:monospace;color:var(--primary);white-space:pre-wrap;border-left:3px solid var(--primary)}
+.form-input{padding:.5rem .75rem;border-radius:var(--radius);background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:inherit;font-size:.875rem;outline:none}
+.form-select{padding:.5rem .75rem;border-radius:var(--radius);background:var(--card);border:1px solid var(--border);color:var(--fg);font-family:inherit;font-size:.875rem;outline:none}
+.mobile-toggle{display:none;position:fixed;top:1rem;left:1rem;z-index:50;background:var(--sidebar-bg);border:none;color:var(--sidebar-fg);padding:.5rem;border-radius:var(--radius);cursor:pointer;font-size:1.25rem}
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main-content{margin-left:0;padding:1rem;padding-top:4rem}.mobile-toggle{display:block}.summary-grid{grid-template-columns:repeat(2,1fr)!important}.cat-grid{grid-template-columns:1fr!important}.header-actions{flex-direction:column}}
+@media print{.sidebar,.mobile-toggle{display:none!important}.main-content{margin-left:0!important}.header-actions{display:none!important}}
+</style>
+</head>
+<body data-theme="dark">
+<button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+<div class="layout">
+<aside class="sidebar" id="sidebar">
+  <button class="sidebar-toggle" onclick="toggleTheme()"><span id="themeLabel">Dark Mode</span><span id="themeIcon">☀️</span></button>
+  <div class="sidebar-logo"><span>🛡️</span><span>AuditFlow</span></div>
+  <nav class="sidebar-nav">
+    <a href="/">📊 Dashboard</a>
+    <a href="/new-scan">🔍 New Scan</a>
+    <a href="/reports" class="active">📄 Reports</a>
+  </nav>
+  <div class="sidebar-footer">Philip Paul James &amp; Abraham A Wallace<br>AuditFlow v1.0</div>
+</aside>
+
+<main class="main-content">
+
+  {% if scan_error %}
+  <div style="background:rgba(245,124,0,.1);border:1px solid rgba(245,124,0,.3);color:#f57c00;padding:.75rem 1rem;border-radius:var(--radius);margin-bottom:1rem;font-size:.875rem">
+    ⚠️ <strong>Scan note:</strong> {{ scan_error }}. Results may be partial.
+  </div>
+  {% endif %}
+
+  <!-- Blue Gradient Header -->
+  <div style="background:linear-gradient(135deg,#1976d2,#1565c0);border-radius:.75rem;padding:1.5rem 2rem;margin-bottom:2rem;color:#fff">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem">
+      <div>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+          <span style="font-size:1.75rem">🛡️</span>
+          <h1 style="font-size:1.5rem;font-weight:700">AuditFlow Security Report</h1>
+        </div>
+        <p style="opacity:.9;font-size:.875rem">Target: {{ host }} &nbsp;|&nbsp; {{ scan_time[:19].replace('T',' ') }} UTC</p>
+      </div>
+      <div class="header-actions" style="display:flex;flex-wrap:wrap;gap:.5rem">
+        <button class="header-btn" onclick="window.print()">🖨️ Print</button>
+        <a href="/reports/{{ report_id }}/download" class="header-btn">⬇️ HTML</a>
+        <a href="/reports/{{ report_id }}/pdf" class="header-btn">📄 PDF</a>
+        <a href="/reports" class="header-btn">⬅️ Back</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meta Info -->
+  <div class="card" style="padding:1.5rem;margin-bottom:1.5rem;overflow-x:auto">
+    <table>
+      <tr style="border-top:none">
+        <td style="font-weight:500;color:var(--muted-fg)">Target</td>
+        <td style="font-family:monospace">{{ host }}</td>
+        <td style="font-weight:500;color:var(--muted-fg);padding-left:2rem">OS</td>
+        <td>{{ os_info[:80] }}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:500;color:var(--muted-fg)">Scan Date</td>
+        <td>{{ scan_time[:19].replace('T',' ') }}</td>
+        <td style="font-weight:500;color:var(--muted-fg);padding-left:2rem">Connection</td>
+        <td>{{ connection_type | upper }}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:500;color:var(--muted-fg)">Report ID</td>
+        <td style="font-family:monospace">{{ report_id }}</td>
+        <td style="font-weight:500;color:var(--muted-fg);padding-left:2rem">Risk Level</td>
+        <td>
+          {% if scoring.risk == 'CRITICAL' %}<span class="badge badge-critical">{{ scoring.risk }}</span>
+          {% elif scoring.risk == 'HIGH' %}<span class="badge badge-high">{{ scoring.risk }}</span>
+          {% elif scoring.risk == 'MEDIUM' %}<span class="badge badge-medium">{{ scoring.risk }}</span>
+          {% else %}<span class="badge badge-pass">{{ scoring.risk }}</span>{% endif %}
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Summary Cards -->
+  {% set critical_count = results | selectattr('severity', 'eq', 'CRITICAL') | selectattr('status', 'eq', 'FAIL') | list | length %}
+  {% set high_count = results | selectattr('severity', 'eq', 'HIGH') | selectattr('status', 'eq', 'FAIL') | list | length %}
+  {% set medium_count = results | selectattr('severity', 'eq', 'MEDIUM') | selectattr('status', 'eq', 'FAIL') | list | length %}
+  <div class="summary-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:1rem;margin-bottom:1.5rem">
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem">🛡️</div><p style="font-size:1.5rem;font-weight:700">{{ scoring.total }}</p><p style="font-size:.7rem;color:var(--muted-fg)">Total</p></div>
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem">✅</div><p style="font-size:1.5rem;font-weight:700;color:var(--severity-pass)">{{ scoring.passed }}</p><p style="font-size:.7rem;color:var(--muted-fg)">Passed</p></div>
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem">❌</div><p style="font-size:1.5rem;font-weight:700;color:var(--destructive)">{{ scoring.failed }}</p><p style="font-size:.7rem;color:var(--muted-fg)">Failed</p></div>
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem">🔴</div><p style="font-size:1.5rem;font-weight:700;color:var(--severity-critical)">{{ critical_count }}</p><p style="font-size:.7rem;color:var(--muted-fg)">Critical</p></div>
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem">🟠</div><p style="font-size:1.5rem;font-weight:700;color:var(--severity-high)">{{ high_count }}</p><p style="font-size:.7rem;color:var(--muted-fg)">High</p></div>
+    <div class="card" style="padding:1rem;text-align:center"><div style="font-size:1.25rem;margin-bottom:.25rem">🟡</div><p style="font-size:1.5rem;font-weight:700;color:var(--severity-medium)">{{ medium_count }}</p><p style="font-size:.7rem;color:var(--muted-fg)">Medium</p></div>
+  </div>
+
+  <!-- Compliance Score -->
+  <div class="card" style="padding:1.5rem;margin-bottom:1.5rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+      <h3 style="font-weight:600">📊 Compliance Score</h3>
+      <span style="font-size:1.5rem;font-weight:700">{{ scoring.score }}%</span>
+    </div>
+    <div class="progress-bar progress-bar-lg">
+      <div class="progress-fill" style="width:{{ [scoring.score,3]|max }}%;background:{% if scoring.score >= 80 %}var(--severity-pass){% elif scoring.score >= 60 %}var(--severity-medium){% elif scoring.score >= 40 %}var(--severity-high){% else %}var(--severity-critical){% endif %}"></div>
+    </div>
+    <p style="font-size:.8rem;color:var(--muted-fg);margin-top:.75rem;text-align:center">Based on {{ scoring.total }} security checks against CIS Benchmarks and NIST guidelines</p>
+
+    <!-- Category Breakdown -->
+    <div class="cat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.5rem">
+      {% for cat in category_order %}{% if cat in scoring.categories %}
+        {% set c = scoring.categories[cat] %}
+        <div style="padding:1rem;background:var(--muted);border-radius:.5rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+            <span style="font-size:.875rem;font-weight:500">{{ cat }}</span>
+            <span style="font-size:.75rem;color:var(--muted-fg)">{{ c.pass }}/{{ c.pass + c.fail }}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:{{ c.score }}%;background:{% if c.score >= 80 %}var(--severity-pass){% elif c.score >= 60 %}var(--severity-medium){% elif c.score >= 40 %}var(--severity-high){% else %}var(--severity-critical){% endif %}"></div>
+          </div>
+          <p style="font-size:.7rem;color:var(--muted-fg);margin-top:.25rem">{{ c.score }}% compliance</p>
+        </div>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+
+  <!-- Network Info -->
+  {% set port_results = results | selectattr('category', 'eq', 'Ports') | list %}
+  <div class="card" style="padding:1.5rem;margin-bottom:1.5rem">
+    <h3 style="font-weight:600;margin-bottom:1rem">🌐 Network Information</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+      {% for r in port_results %}
+        <span class="badge {{ 'badge-critical' if r.status == 'FAIL' else 'badge-pass' }}" style="padding:.375rem .75rem">
+          {{ r.current_value }}
+        </span>
+      {% endfor %}
+      {% if not port_results %}<span style="color:var(--muted-fg);font-size:.875rem">No port data available</span>{% endif %}
+    </div>
+  </div>
+
+  <!-- Critical Findings -->
+  {% set crit_fails = results | selectattr('severity', 'eq', 'CRITICAL') | selectattr('status', 'eq', 'FAIL') | list %}
+  {% if crit_fails %}
+  <div class="card" style="border-left:4px solid var(--severity-critical);margin-bottom:1.5rem;overflow:hidden">
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)"><h3 style="font-weight:600">🔴 Critical Findings (Immediate Action Required)</h3></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
+        <tbody>
+          {% for r in crit_fails %}
+          <tr>
+            <td style="font-weight:500">{{ r.name }}<br><small style="color:var(--muted-fg);font-weight:400">{{ r.category }}</small></td>
+            <td><span class="badge badge-fail">FAIL</span></td>
+            <td>
+              <p style="color:var(--muted-fg);font-size:.875rem">{{ r.description }}</p>
+              {% if r.current_value and r.current_value not in ('Data not available','N/A','') %}
+              <div class="config-block"><span style="color:var(--muted-fg)">Current: </span>{{ r.current_value }}</div>
+              {% endif %}
+              {% if r.remediation %}
+              <div class="remediation-block"><span style="color:var(--muted-fg)">Remediation: </span>{{ r.remediation }}</div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- High Severity Findings -->
+  {% set high_fails = results | selectattr('severity', 'eq', 'HIGH') | selectattr('status', 'eq', 'FAIL') | list %}
+  {% if high_fails %}
+  <div class="card" style="border-left:4px solid var(--severity-high);margin-bottom:1.5rem;overflow:hidden">
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)"><h3 style="font-weight:600">🟠 High Severity Findings</h3></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
+        <tbody>
+          {% for r in high_fails %}
+          <tr>
+            <td style="font-weight:500">{{ r.name }}<br><small style="color:var(--muted-fg);font-weight:400">{{ r.category }}</small></td>
+            <td><span class="badge badge-fail">FAIL</span></td>
+            <td>
+              <p style="color:var(--muted-fg);font-size:.875rem">{{ r.description }}</p>
+              {% if r.current_value and r.current_value not in ('Data not available','N/A','') %}
+              <div class="config-block"><span style="color:var(--muted-fg)">Current: </span>{{ r.current_value }}</div>
+              {% endif %}
+              {% if r.remediation %}
+              <div class="remediation-block"><span style="color:var(--muted-fg)">Remediation: </span>{{ r.remediation }}</div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Medium Severity Findings -->
+  {% set med_fails = results | selectattr('severity', 'eq', 'MEDIUM') | selectattr('status', 'eq', 'FAIL') | list %}
+  {% if med_fails %}
+  <div class="card" style="border-left:4px solid var(--severity-medium);margin-bottom:1.5rem;overflow:hidden">
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)"><h3 style="font-weight:600">🟡 Medium Severity Findings</h3></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
+        <tbody>
+          {% for r in med_fails %}
+          <tr>
+            <td style="font-weight:500">{{ r.name }}<br><small style="color:var(--muted-fg);font-weight:400">{{ r.category }}</small></td>
+            <td><span class="badge badge-fail">FAIL</span></td>
+            <td>
+              <p style="color:var(--muted-fg);font-size:.875rem">{{ r.description }}</p>
+              {% if r.current_value and r.current_value not in ('Data not available','N/A','') %}
+              <div class="config-block"><span style="color:var(--muted-fg)">Current: </span>{{ r.current_value }}</div>
+              {% endif %}
+              {% if r.remediation %}
+              <div class="remediation-block"><span style="color:var(--muted-fg)">Remediation: </span>{{ r.remediation }}</div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Complete Findings Table -->
+  <div class="card" style="margin-bottom:1.5rem;overflow:hidden">
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)">
+      <h3 style="font-weight:600;margin-bottom:.75rem">📋 Complete Findings</h3>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <input type="text" id="tableFilter" class="form-input" placeholder="🔍 Filter..." style="max-width:250px" oninput="filterFindings()">
+        <select id="statusFilter" class="form-select" style="width:auto" onchange="filterFindings()">
+          <option value="">All Status</option>
+          <option value="FAIL">FAIL</option>
+          <option value="PASS">PASS</option>
+          <option value="INFO">INFO</option>
+        </select>
+        <select id="severityFilter" class="form-select" style="width:auto" onchange="filterFindings()">
+          <option value="">All Severity</option>
+          <option value="CRITICAL">CRITICAL</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="LOW">LOW</option>
+        </select>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table id="completeTable">
+        <thead><tr><th onclick="sortTable(0)">Check ⇅</th><th onclick="sortTable(1)">Severity ⇅</th><th onclick="sortTable(2)">Status ⇅</th><th onclick="sortTable(3)">Category ⇅</th><th>Details</th></tr></thead>
+        <tbody>
+          {% for r in results %}
+          <tr class="finding-row-{{ r.status | lower }}">
+            <td style="font-weight:500">{{ r.name }}</td>
+            <td>
+              {% if r.severity == 'CRITICAL' %}<span class="badge badge-critical">{{ r.severity }}</span>
+              {% elif r.severity == 'HIGH' %}<span class="badge badge-high">{{ r.severity }}</span>
+              {% elif r.severity == 'MEDIUM' %}<span class="badge badge-medium">{{ r.severity }}</span>
+              {% else %}<span class="badge badge-low">{{ r.severity }}</span>{% endif %}
+            </td>
+            <td>
+              {% if r.status == 'PASS' %}<span class="badge badge-pass">PASS</span>
+              {% elif r.status == 'FAIL' %}<span class="badge badge-fail">FAIL</span>
+              {% elif r.status == 'WARN' %}<span class="badge badge-warn">WARN</span>
+              {% else %}<span class="badge badge-info">{{ r.status }}</span>{% endif %}
+            </td>
+            <td style="color:var(--muted-fg)">{{ r.category }}</td>
+            <td style="color:var(--muted-fg);font-size:.8rem">{{ r.description[:100] }}{% if r.description|length > 100 %}...{% endif %}
+              {% if r.status in ('FAIL','WARN') and r.current_value and r.current_value not in ('Data not available','N/A','') %}
+              <div style="margin-top:.375rem;font-family:monospace;font-size:.75rem;background:rgba(251,192,45,.1);padding:.375rem;border-radius:.25rem">{{ r.current_value }}</div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Passed Checks -->
+  {% set passed = results | selectattr('status', 'eq', 'PASS') | list %}
+  {% if passed %}
+  <div class="card" style="margin-bottom:1.5rem;overflow:hidden">
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)"><h3 style="font-weight:600">✅ Passed Checks ({{ passed|length }})</h3></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Check</th><th>Severity</th><th>Category</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for r in passed %}
+          <tr class="finding-row-pass">
+            <td style="font-weight:500">{{ r.name }}</td>
+            <td>
+              {% if r.severity == 'CRITICAL' %}<span class="badge badge-critical">{{ r.severity }}</span>
+              {% elif r.severity == 'HIGH' %}<span class="badge badge-high">{{ r.severity }}</span>
+              {% elif r.severity == 'MEDIUM' %}<span class="badge badge-medium">{{ r.severity }}</span>
+              {% else %}<span class="badge badge-low">{{ r.severity }}</span>{% endif %}
+            </td>
+            <td style="color:var(--muted-fg)">{{ r.category }}</td>
+            <td><span class="badge badge-pass">PASS</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Footer -->
+  <div class="card" style="padding:1.5rem;text-align:center;color:var(--muted-fg);font-size:.875rem">
+    <p style="font-weight:500">Generated by AuditFlow v1.0</p>
+    <p style="margin-top:.25rem">Developed by {{ developers }}</p>
+    <p style="margin-top:.25rem;font-family:monospace;font-size:.75rem">Report ID: {{ report_id }} &nbsp;|&nbsp; {{ scan_time[:19].replace('T',' ') }} UTC</p>
+    <p style="margin-top:.5rem;font-size:.75rem;font-style:italic">⚠️ This report is for authorized security assessment only. Unauthorized use is prohibited.</p>
+  </div>
+
+</main>
+</div>
+
+<script>
+const saved = localStorage.getItem('theme') || 'dark';
+document.body.setAttribute('data-theme', saved);
+updateThemeUI(saved);
+function toggleTheme() {
+  const c = document.body.getAttribute('data-theme');
+  const n = c === 'dark' ? 'light' : 'dark';
+  document.body.setAttribute('data-theme', n);
+  localStorage.setItem('theme', n);
+  updateThemeUI(n);
+}
+function updateThemeUI(t) {
+  const icon = document.getElementById('themeIcon');
+  const label = document.getElementById('themeLabel');
+  if (icon) icon.textContent = t === 'dark' ? '☀️' : '🌙';
+  if (label) label.textContent = t === 'dark' ? 'Dark Mode' : 'Light Mode';
+}
+
+// Filter complete findings table
+function filterFindings() {
+  const q = document.getElementById('tableFilter').value.toLowerCase();
+  const st = document.getElementById('statusFilter').value.toLowerCase();
+  const sv = document.getElementById('severityFilter').value.toLowerCase();
+  document.querySelectorAll('#completeTable tbody tr').forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const rowSt = row.cells[2]?.textContent.trim().toLowerCase() || '';
+    const rowSv = row.cells[1]?.textContent.trim().toLowerCase() || '';
+    row.style.display = (
+      (!q || text.includes(q)) &&
+      (!st || rowSt.includes(st)) &&
+      (!sv || rowSv.includes(sv))
+    ) ? '' : 'none';
+  });
+}
+
+// Sort complete findings table
+const sortState = {};
+function sortTable(col) {
+  const tbody = document.querySelector('#completeTable tbody');
+  const rows = Array.from(tbody.rows);
+  const asc = !sortState[col];
+  sortState[col] = asc;
+  const sevOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+  rows.sort((a, b) => {
+    const va = a.cells[col]?.textContent.trim() || '';
+    const vb = b.cells[col]?.textContent.trim() || '';
+    const na = sevOrder[va] ?? va;
+    const nb = sevOrder[vb] ?? vb;
+    if (typeof na === 'number' && typeof nb === 'number') return asc ? na - nb : nb - na;
+    return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+</script>
+</body>
+</html>

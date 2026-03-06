@@ -1,0 +1,376 @@
+# AuditFlow SSH Security Rules - CIS Benchmark Aligned
+# Categories: SSH, Firewall, Ports, Password Policy, Services
+
+rules:
+  # ── SSH RULES ──────────────────────────────────────────────────────────────
+
+  - id: ssh_root_login
+    name: "SSH Root Login Disabled"
+    category: SSH
+    severity: CRITICAL
+    type: regex_match
+    data_key: ssh_config.parsed.PermitRootLogin
+    expected: "^(no|prohibit-password|without-password)$"
+    expected_display: "no or prohibit-password"
+    description: >
+      Allowing direct root login via SSH bypasses auditing and reduces
+      accountability. CIS Benchmark requires PermitRootLogin to be 'no'
+      or 'prohibit-password'.
+    remediation: |
+      Edit /etc/ssh/sshd_config:
+        PermitRootLogin no
+      Then restart: systemctl restart sshd
+
+  - id: ssh_password_auth
+    name: "SSH Password Authentication Disabled"
+    category: SSH
+    severity: HIGH
+    type: regex_match
+    data_key: ssh_config.parsed.PasswordAuthentication
+    expected: "^no$"
+    expected_display: "no"
+    description: >
+      Password authentication is susceptible to brute-force attacks.
+      Key-based authentication should be enforced.
+    remediation: |
+      Edit /etc/ssh/sshd_config:
+        PasswordAuthentication no
+      Ensure key-based auth is configured before applying.
+
+  - id: ssh_empty_passwords
+    name: "SSH Empty Passwords Disallowed"
+    category: SSH
+    severity: CRITICAL
+    type: regex_match
+    data_key: ssh_config.parsed.PermitEmptyPasswords
+    expected: "^no$"
+    expected_display: "no"
+    description: >
+      Permitting empty passwords allows unauthenticated access.
+    remediation: |
+      Edit /etc/ssh/sshd_config:
+        PermitEmptyPasswords no
+
+  - id: ssh_max_auth_tries
+    name: "SSH MaxAuthTries <= 4"
+    category: SSH
+    severity: MEDIUM
+    type: numeric_lte
+    data_key: ssh_config.parsed.MaxAuthTries
+    expected: 4
+    expected_display: "<= 4"
+    description: >
+      Limiting authentication attempts reduces brute-force risk.
+    remediation: |
+      Edit /etc/ssh/sshd_config:
+        MaxAuthTries 4
+
+  - id: ssh_client_alive_interval
+    name: "SSH Idle Timeout Configured"
+    category: SSH
+    severity: MEDIUM
+    type: numeric_lte
+    data_key: ssh_config.parsed.ClientAliveInterval
+    expected: 300
+    expected_display: "<= 300 seconds"
+    description: >
+      Idle SSH sessions should timeout to prevent unauthorized access
+      from unattended terminals.
+    remediation: |
+      Edit /etc/ssh/sshd_config:
+        ClientAliveInterval 300
+        ClientAliveCountMax 0
+
+  - id: ssh_x11_forwarding
+    name: "SSH X11 Forwarding Disabled"
+    category: SSH
+    severity: LOW
+    type: regex_match
+    data_key: ssh_config.parsed.X11Forwarding
+    expected: "^no$"
+    negate: false
+    expected_display: "no"
+    description: >
+      X11 forwarding enables graphical session forwarding which
+      increases the attack surface.
+    remediation: |
+      Edit /etc/ssh/sshd_config:
+        X11Forwarding no
+
+  - id: ssh_tcp_forwarding
+    name: "SSH TCP Forwarding Disabled"
+    category: SSH
+    severity: MEDIUM
+    type: regex_match
+    data_key: ssh_config.parsed.AllowTcpForwarding
+    expected: "^no$"
+    expected_display: "no"
+    description: >
+      TCP forwarding can be used to bypass network controls.
+    remediation: |
+      Edit /etc/ssh/sshd_config:
+        AllowTcpForwarding no
+
+  - id: ssh_banner
+    name: "SSH Login Banner Configured"
+    category: SSH
+    severity: LOW
+    type: regex_match
+    data_key: ssh_config.parsed.Banner
+    expected: "^(?!none$).+"
+    expected_display: "any value (not 'none')"
+    description: >
+      A legal warning banner should be presented to users before
+      authentication to establish legal framework for monitoring.
+    remediation: |
+      Create /etc/issue.net with warning text, then:
+      Edit /etc/ssh/sshd_config:
+        Banner /etc/issue.net
+
+  - id: ssh_log_level
+    name: "SSH Logging Set to VERBOSE or INFO"
+    category: SSH
+    severity: LOW
+    type: regex_match
+    data_key: ssh_config.parsed.LogLevel
+    expected: "^(VERBOSE|INFO)$"
+    expected_display: "VERBOSE or INFO"
+    description: >
+      Adequate logging allows forensic analysis of authentication events.
+    remediation: |
+      Edit /etc/ssh/sshd_config:
+        LogLevel VERBOSE
+
+  # ── FIREWALL RULES ────────────────────────────────────────────────────────
+
+  - id: firewall_active
+    name: "Host Firewall Active"
+    category: Firewall
+    severity: CRITICAL
+    type: boolean
+    data_key: firewall.any_firewall_active
+    expected: true
+    expected_display: "active"
+    description: >
+      A host-based firewall (UFW, firewalld, or iptables) must be active
+      to control network traffic and limit the attack surface.
+    remediation: |
+      Enable UFW:
+        ufw enable
+        ufw default deny incoming
+        ufw default allow outgoing
+        ufw allow ssh
+
+  - id: ufw_active
+    name: "UFW Firewall Enabled"
+    category: Firewall
+    severity: HIGH
+    type: boolean
+    data_key: firewall.ufw_active
+    expected: true
+    expected_display: "active"
+    description: >
+      UFW (Uncomplicated Firewall) should be enabled and configured.
+    remediation: |
+      sudo ufw enable
+      sudo ufw status verbose
+
+  # ── PORT RULES ────────────────────────────────────────────────────────────
+
+  - id: port_ftp_closed
+    name: "FTP Port 21 Closed"
+    category: Ports
+    severity: HIGH
+    type: port_open
+    port: 21
+    negate: true
+    expected_display: "CLOSED"
+    description: >
+      FTP transmits credentials in plaintext and should not be accessible.
+      Use SFTP or FTPS instead.
+    remediation: |
+      Disable FTP service:
+        systemctl disable vsftpd --now
+      Block via UFW:
+        ufw deny 21
+
+  - id: port_telnet_closed
+    name: "Telnet Port 23 Closed"
+    category: Ports
+    severity: CRITICAL
+    type: port_open
+    port: 23
+    negate: true
+    expected_display: "CLOSED"
+    description: >
+      Telnet transmits all data including credentials in plaintext.
+      Replace with SSH immediately.
+    remediation: |
+      Disable telnet:
+        systemctl disable telnet --now
+        ufw deny 23
+
+  - id: port_smb_closed
+    name: "SMB Port 445 Closed (External)"
+    category: Ports
+    severity: HIGH
+    type: port_open
+    port: 445
+    negate: true
+    expected_display: "CLOSED"
+    description: >
+      SMB exposed externally is a major attack vector (EternalBlue, WannaCry).
+    remediation: |
+      Block SMB externally:
+        ufw deny 445
+      Disable Samba if not needed:
+        systemctl disable smbd nmbd --now
+
+  - id: port_rpc_closed
+    name: "MS-RPC Port 135 Closed"
+    category: Ports
+    severity: MEDIUM
+    type: port_open
+    port: 135
+    negate: true
+    expected_display: "CLOSED"
+    description: >
+      MS-RPC port is frequently targeted and should not be publicly accessible.
+    remediation: |
+      ufw deny 135
+
+  - id: port_netbios_closed
+    name: "NetBIOS Port 139 Closed"
+    category: Ports
+    severity: MEDIUM
+    type: port_open
+    port: 139
+    negate: true
+    expected_display: "CLOSED"
+    description: >
+      NetBIOS session service should not be exposed externally.
+    remediation: |
+      ufw deny 139
+
+  - id: port_redis_closed
+    name: "Redis Port 6379 Closed (No Auth)"
+    category: Ports
+    severity: HIGH
+    type: port_open
+    port: 6379
+    negate: true
+    expected_display: "CLOSED"
+    description: >
+      Unauthenticated Redis exposure enables data theft and RCE.
+    remediation: |
+      Bind Redis to localhost in /etc/redis/redis.conf:
+        bind 127.0.0.1
+      Or block via firewall:
+        ufw deny 6379
+
+  # ── PASSWORD POLICY RULES ─────────────────────────────────────────────────
+
+  - id: pw_max_days
+    name: "Password Maximum Age <= 90 Days"
+    category: Password Policy
+    severity: MEDIUM
+    type: numeric_lte
+    data_key: password_policy.PASS_MAX_DAYS
+    expected: 90
+    expected_display: "<= 90 days"
+    description: >
+      Passwords should be rotated at least every 90 days per CIS Benchmark.
+    remediation: |
+      Edit /etc/login.defs:
+        PASS_MAX_DAYS 90
+      Apply to existing users:
+        chage --maxdays 90 <username>
+
+  - id: pw_min_days
+    name: "Password Minimum Age >= 1 Day"
+    category: Password Policy
+    severity: LOW
+    type: numeric_gte
+    data_key: password_policy.PASS_MIN_DAYS
+    expected: 1
+    expected_display: ">= 1 day"
+    description: >
+      Minimum password age prevents users from cycling through passwords
+      to return to a previous one.
+    remediation: |
+      Edit /etc/login.defs:
+        PASS_MIN_DAYS 7
+
+  - id: pw_warn_age
+    name: "Password Expiry Warning >= 7 Days"
+    category: Password Policy
+    severity: LOW
+    type: numeric_gte
+    data_key: password_policy.PASS_WARN_AGE
+    expected: 7
+    expected_display: ">= 7 days"
+    description: >
+      Users should receive adequate warning before password expiration.
+    remediation: |
+      Edit /etc/login.defs:
+        PASS_WARN_AGE 7
+
+  - id: pw_min_length
+    name: "Password Minimum Length >= 14"
+    category: Password Policy
+    severity: MEDIUM
+    type: numeric_gte
+    data_key: password_policy.pam_minlen
+    expected: 14
+    expected_display: ">= 14 characters"
+    description: >
+      Longer passwords significantly increase resistance to brute-force.
+      CIS recommends minimum 14 characters.
+    remediation: |
+      Install libpam-pwquality, then edit /etc/security/pwquality.conf:
+        minlen = 14
+        minclass = 4
+
+  # ── SERVICES RULES ────────────────────────────────────────────────────────
+
+  - id: svc_telnet_disabled
+    name: "Telnet Service Disabled"
+    category: Services
+    severity: CRITICAL
+    type: service_running
+    service: telnet
+    negate: true
+    expected_display: "stopped/disabled"
+    description: >
+      The telnet service transmits all data in plaintext including
+      credentials. It must not be running.
+    remediation: |
+      systemctl disable telnet --now
+      apt-get remove telnet
+
+  - id: svc_ftp_disabled
+    name: "FTP Service (vsftpd) Disabled"
+    category: Services
+    severity: HIGH
+    type: service_running
+    service: vsftpd
+    negate: true
+    expected_display: "stopped/disabled"
+    description: >
+      FTP transmits credentials in plaintext. Use SFTP instead.
+    remediation: |
+      systemctl disable vsftpd --now
+      apt-get remove vsftpd
+
+  - id: svc_rsh_disabled
+    name: "RSH Service Disabled"
+    category: Services
+    severity: CRITICAL
+    type: service_running
+    service: rsh
+    negate: true
+    expected_display: "stopped/disabled"
+    description: >
+      RSH (Remote Shell) is an extremely insecure legacy protocol.
+    remediation: |
+      apt-get remove rsh-server rsh-client

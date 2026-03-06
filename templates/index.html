@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
+  <h1 style="font-size:1.5rem;font-weight:700">Dashboard</h1>
+  <a href="/new-scan" class="btn-primary">➕ New Scan</a>
+</div>
+
+<!-- Stat Cards -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem">
+  <div class="glass-card animate-fade-in">
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+      <div style="padding:.5rem;border-radius:.5rem;background:rgba(25,118,210,0.1)">🛡️</div>
+      <span style="font-size:.875rem;font-weight:500;color:var(--muted-fg)">Total Scans</span>
+    </div>
+    <p style="font-size:1.875rem;font-weight:700">{{ total_scans }}</p>
+  </div>
+  <div class="glass-card animate-fade-in" style="animation-delay:.1s">
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+      <div style="padding:.5rem;border-radius:.5rem;background:rgba(25,118,210,0.1)">🎯</div>
+      <span style="font-size:.875rem;font-weight:500;color:var(--muted-fg)">Avg Compliance Score</span>
+    </div>
+    <p style="font-size:1.875rem;font-weight:700">{{ avg_score }}%</p>
+  </div>
+  <div class="glass-card animate-fade-in" style="animation-delay:.2s">
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+      <div style="padding:.5rem;border-radius:.5rem;background:rgba(211,47,47,0.1)">⚠️</div>
+      <span style="font-size:.875rem;font-weight:500;color:var(--muted-fg)">Critical Risk Targets</span>
+    </div>
+    <p style="font-size:1.875rem;font-weight:700">{{ critical_count }}</p>
+  </div>
+</div>
+
+<!-- Recent Scans -->
+<div class="card" style="overflow:hidden">
+  <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+    <h2 style="font-size:1.125rem;font-weight:600">Recent Scans</h2>
+    <a href="/reports" class="btn-outline" style="font-size:.8rem;padding:.4rem .9rem">View All</a>
+  </div>
+  {% if reports %}
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Target</th><th>Scan Date</th><th>Score</th><th>Risk Level</th><th>Passed</th><th>Failed</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <td style="font-family:monospace;font-weight:500">{{ r.host }}</td>
+          <td style="color:var(--muted-fg)">{{ r.scan_time[:19].replace('T',' ') }}</td>
+          <td>
+            {% if r.score >= 80 %}<span class="badge badge-pass">{{ r.score }}%</span>
+            {% elif r.score >= 60 %}<span class="badge badge-medium">{{ r.score }}%</span>
+            {% elif r.score >= 40 %}<span class="badge badge-high">{{ r.score }}%</span>
+            {% else %}<span class="badge badge-critical">{{ r.score }}%</span>{% endif %}
+          </td>
+          <td>
+            {% if r.risk == 'CRITICAL' %}<span class="badge badge-critical">{{ r.risk }}</span>
+            {% elif r.risk == 'HIGH' %}<span class="badge badge-high">{{ r.risk }}</span>
+            {% elif r.risk == 'MEDIUM' %}<span class="badge badge-medium">{{ r.risk }}</span>
+            {% else %}<span class="badge badge-pass">{{ r.risk }}</span>{% endif %}
+          </td>
+          <td style="color:var(--severity-pass);font-weight:500">{{ r.passed }}</td>
+          <td style="color:var(--destructive);font-weight:500">{{ r.failed }}</td>
+          <td><a href="/reports/{{ r.report_id }}" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.875rem">👁️ View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:4rem 2rem;color:var(--muted-fg)">
+    <div style="font-size:3rem;margin-bottom:1rem">🛡️</div>
+    <p style="font-weight:500;margin-bottom:.5rem">No scans yet</p>
+    <p style="font-size:.875rem;margin-bottom:1.5rem">Run your first security audit to get started</p>
+    <a href="/new-scan" class="btn-primary">🔍 Start Scanning</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

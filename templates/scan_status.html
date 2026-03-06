@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Scan Status{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 8rem)">
+  <div class="card" style="padding:3rem;text-align:center;max-width:28rem;width:100%;animation:fadeIn .5s ease-out" id="statusCard">
+
+    <!-- Scanning state -->
+    <div id="stateScanning">
+      <div style="width:56px;height:56px;border:4px solid var(--muted);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1.5rem"></div>
+      <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:.5rem">Scanning Target...</h2>
+      <p style="color:var(--muted-fg);font-size:.875rem;margin-bottom:.25rem">Job ID: <code style="font-family:monospace">{{ job_id }}</code></p>
+      <p style="color:var(--muted-fg);font-size:.875rem">Running security checks. This may take a few minutes.</p>
+      <div class="progress-bar" style="margin-top:1.5rem">
+        <div class="progress-fill fill-pass" style="width:60%;animation:pulse 2s ease-in-out infinite"></div>
+      </div>
+    </div>
+
+    <!-- Complete state -->
+    <div id="stateComplete" style="display:none">
+      <div style="font-size:3.5rem;margin-bottom:1.5rem">✅</div>
+      <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:.5rem">Scan Complete!</h2>
+      <p style="color:var(--muted-fg);font-size:.875rem;margin-bottom:1.5rem" id="completeMsg">All security checks completed successfully.</p>
+      <div style="display:flex;gap:.75rem;justify-content:center">
+        <a href="/reports/{{ job_id }}" class="btn-primary" id="viewReportBtn">View Report</a>
+        <a href="/reports" class="btn-outline">All Reports</a>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div id="stateError" style="display:none">
+      <div style="font-size:3.5rem;margin-bottom:1.5rem">❌</div>
+      <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:.5rem">Scan Failed</h2>
+      <p style="color:var(--muted-fg);font-size:.875rem;margin-bottom:1.5rem" id="errorMsg">An error occurred during the scan.</p>
+      <a href="/new-scan" class="btn-primary">Try Again</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const jobId = "{{ job_id }}";
+let pollInterval;
+
+function poll() {
+  fetch(`/scan-status/${jobId}/json`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'done') {
+        clearInterval(pollInterval);
+        document.getElementById('stateScanning').style.display = 'none';
+        document.getElementById('stateComplete').style.display = 'block';
+        if (data.error) {
+          document.getElementById('completeMsg').textContent = 'Note: ' + data.error + '. Partial results available.';
+        }
+      } else if (data.status === 'error') {
+        clearInterval(pollInterval);
+        document.getElementById('stateScanning').style.display = 'none';
+        document.getElementById('stateError').style.display = 'block';
+        document.getElementById('errorMsg').textContent = data.error || 'An unknown error occurred.';
+      }
+    });
+}
+
+pollInterval = setInterval(poll, 2000);
+poll();
+</script>
+{% endblock %}
