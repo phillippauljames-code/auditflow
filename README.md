@@ -125,7 +125,7 @@ docker inspect vuln-target | grep IPAddress
 
 ---
 
-## Expected Test Results (~70% pass / 30% fail)
+## Expected test Results (~70% pass / 30% fail)
 
 | Category        | Pass | Fail | Notes                           |
 |-----------------|------|------|---------------------------------|
